@@ -603,7 +603,7 @@ public:
         }
         ENFORCE(owner.data(ctx)->isClassOrModule());
 
-        auto parsedArgs = ast::ArgParsing::parseArgs(ctx, method->args);
+        auto parsedArgs = ast::ArgParsing::parseArgs(method->args);
 
         // There are three symbols in play here, because there's:
         //

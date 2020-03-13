@@ -311,7 +311,7 @@ BasicBlock *CFGBuilder::walk(CFGContext cctx, ast::Expression *what, BasicBlock 
 
                 if (s->block != nullptr) {
                     auto newRubyBlockId = ++cctx.inWhat.maxRubyBlockId;
-                    vector<ast::ParsedArg> blockArgs = ast::ArgParsing::parseArgs(cctx.ctx, s->block->args);
+                    vector<ast::ParsedArg> blockArgs = ast::ArgParsing::parseArgs(s->block->args);
                     vector<core::ArgInfo::ArgFlags> argFlags;
                     for (auto &e : blockArgs) {
                         auto &target = argFlags.emplace_back();

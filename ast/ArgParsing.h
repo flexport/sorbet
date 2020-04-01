@@ -15,7 +15,7 @@ class ArgParsing {
 public:
     static ParsedArg parseArg(std::unique_ptr<ast::Reference> arg);
     static std::vector<ParsedArg> parseArgs(ast::MethodDef::ARGS_store &args);
-    static std::vector<u4> hashArgs(core::Context ctx, std::vector<ParsedArg> &args);
+    static std::vector<u4> hashArgs(core::Context ctx, const std::vector<ParsedArg> &args);
 };
 }; // namespace sorbet::ast
 

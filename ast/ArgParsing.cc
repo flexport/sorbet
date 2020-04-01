@@ -55,7 +55,7 @@ vector<ParsedArg> ArgParsing::parseArgs(ast::MethodDef::ARGS_store &args) {
     return parsedArgs;
 }
 
-std::vector<u4> ArgParsing::hashArgs(core::Context ctx, std::vector<ParsedArg> &args) {
+std::vector<u4> ArgParsing::hashArgs(core::Context ctx, const std::vector<ParsedArg> &args) {
     std::vector<u4> result;
     result.reserve(args.size());
     for (const auto &e : args) {

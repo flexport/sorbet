@@ -6,10 +6,7 @@ struct ParsedArg {
     core::LocOffsets loc;
     core::LocalVariable local;
     std::unique_ptr<ast::Expression> default_;
-    bool keyword = false;
-    bool block = false;
-    bool repeated = false;
-    bool shadow = false;
+    core::ArgInfo::ArgFlags flags;
 };
 class ArgParsing {
 public:

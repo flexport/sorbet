@@ -14,23 +14,24 @@ ParsedArg ArgParsing::parseArg(unique_ptr<ast::Reference> arg) {
         arg.get(), [&](ast::UnresolvedIdent *nm) { Exception::raise("Unexpected unresolved name in arg!"); },
         [&](ast::RestArg *rest) {
             parsedArg = parseArg(move(rest->expr));
-            parsedArg.repeated = true;
+            parsedArg.flags.isRepeated = true;
         },
         [&](ast::KeywordArg *kw) {
             parsedArg = parseArg(move(kw->expr));
-            parsedArg.keyword = true;
+            parsedArg.flags.isKeyword = true;
         },
         [&](ast::OptionalArg *opt) {
             parsedArg = parseArg(move(opt->expr));
+            parsedArg.flags.isDefault = true;
             parsedArg.default_ = move(opt->default_);
         },
         [&](ast::BlockArg *blk) {
             parsedArg = parseArg(move(blk->expr));
-            parsedArg.block = true;
+            parsedArg.flags.isBlock = true;
         },
         [&](ast::ShadowArg *shadow) {
             parsedArg = parseArg(move(shadow->expr));
-            parsedArg.shadow = true;
+            parsedArg.flags.isShadow = true;
         },
         [&](ast::Local *local) {
             parsedArg.local = local->localVariable;

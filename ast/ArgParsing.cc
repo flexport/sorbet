@@ -7,30 +7,30 @@ using namespace std;
 
 namespace sorbet::ast {
 
-ParsedArg ArgParsing::parseArg(unique_ptr<ast::Reference> arg) {
+namespace {
+ParsedArg parseArg(const unique_ptr<ast::Reference> &arg) {
     ParsedArg parsedArg;
 
     typecase(
         arg.get(), [&](ast::UnresolvedIdent *nm) { Exception::raise("Unexpected unresolved name in arg!"); },
         [&](ast::RestArg *rest) {
-            parsedArg = parseArg(move(rest->expr));
+            parsedArg = parseArg(rest->expr);
             parsedArg.flags.isRepeated = true;
         },
         [&](ast::KeywordArg *kw) {
-            parsedArg = parseArg(move(kw->expr));
+            parsedArg = parseArg(kw->expr);
             parsedArg.flags.isKeyword = true;
         },
         [&](ast::OptionalArg *opt) {
-            parsedArg = parseArg(move(opt->expr));
+            parsedArg = parseArg(opt->expr);
             parsedArg.flags.isDefault = true;
-            parsedArg.default_ = move(opt->default_);
         },
         [&](ast::BlockArg *blk) {
-            parsedArg = parseArg(move(blk->expr));
+            parsedArg = parseArg(blk->expr);
             parsedArg.flags.isBlock = true;
         },
         [&](ast::ShadowArg *shadow) {
-            parsedArg = parseArg(move(shadow->expr));
+            parsedArg = parseArg(shadow->expr);
             parsedArg.flags.isShadow = true;
         },
         [&](ast::Local *local) {
@@ -41,7 +41,24 @@ ParsedArg ArgParsing::parseArg(unique_ptr<ast::Reference> arg) {
     return parsedArg;
 }
 
-vector<ParsedArg> ArgParsing::parseArgs(ast::MethodDef::ARGS_store &args) {
+unique_ptr<ast::Expression> getDefaultValue(unique_ptr<ast::Reference> arg) {
+    unique_ptr<ast::Expression> default_;
+    typecase(
+        arg.get(), [&](ast::UnresolvedIdent *nm) { Exception::raise("Unexpected unresolved name in arg!"); },
+        [&](ast::RestArg *rest) { default_ = getDefaultValue(move(rest->expr)); },
+        [&](ast::KeywordArg *kw) { default_ = getDefaultValue(move(kw->expr)); },
+        [&](ast::OptionalArg *opt) { default_ = getDefaultValue(move(opt->expr)); },
+        [&](ast::BlockArg *blk) { default_ = getDefaultValue(move(blk->expr)); },
+        [&](ast::ShadowArg *shadow) { default_ = getDefaultValue(move(shadow->expr)); },
+        [&](ast::Local *local) {
+            // No default.
+        });
+    return default_;
+}
+
+} // namespace
+
+vector<ParsedArg> ArgParsing::parseArgs(const ast::MethodDef::ARGS_store &args) {
     vector<ParsedArg> parsedArgs;
     for (auto &arg : args) {
         auto *refExp = ast::cast_tree<ast::Reference>(arg.get());
@@ -49,8 +66,9 @@ vector<ParsedArg> ArgParsing::parseArgs(ast::MethodDef::ARGS_store &args) {
             Exception::raise("Must be a reference!");
         }
         unique_ptr<ast::Reference> refExpImpl(refExp);
-        arg.release();
-        parsedArgs.emplace_back(parseArg(move(refExpImpl)));
+        parsedArgs.emplace_back(parseArg(refExpImpl));
+        // Don't free the pointer; it's still owned by `args`.
+        refExpImpl.release();
     }
 
     return parsedArgs;
@@ -62,26 +80,33 @@ std::vector<u4> ArgParsing::hashArgs(core::Context ctx, const std::vector<Parsed
     for (const auto &e : args) {
         u4 arg = 0;
         u1 flags = 0;
-        if (e.keyword) {
+        if (e.flags.isKeyword) {
             arg = core::mix(arg, core::_hash(e.local._name.data(ctx)->shortName(ctx)));
             flags += 1;
         }
-        if (e.repeated) {
+        if (e.flags.isRepeated) {
             flags += 2;
         }
-        if (e.default_) {
+        if (e.flags.isDefault) {
             flags += 4;
         }
-        if (e.shadow) {
+        if (e.flags.isShadow) {
             flags += 8;
         }
-        if (e.block) {
+        if (e.flags.isBlock) {
             flags += 16;
         }
 
         result.push_back(core::mix(arg, flags));
     }
     return result;
+}
+
+unique_ptr<ast::Expression> ArgParsing::getDefault(const ParsedArg &parsedArg, unique_ptr<ast::Reference> arg) {
+    if (!parsedArg.flags.isDefault) {
+        return nullptr;
+    }
+    return getDefaultValue(move(arg));
 }
 
 } // namespace sorbet::ast

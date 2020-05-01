@@ -41,18 +41,23 @@ ParsedArg parseArg(const unique_ptr<ast::Reference> &arg) {
     return parsedArg;
 }
 
-unique_ptr<ast::Expression> getDefaultValue(unique_ptr<ast::Reference> arg) {
+unique_ptr<ast::Expression> getDefaultValue(unique_ptr<ast::Expression> arg) {
+    auto *refExp = ast::cast_tree<ast::Reference>(arg.get());
+    if (!refExp) {
+        Exception::raise("Must be a reference!");
+    }
     unique_ptr<ast::Expression> default_;
     typecase(
-        arg.get(), [&](ast::UnresolvedIdent *nm) { Exception::raise("Unexpected unresolved name in arg!"); },
+        refExp, [&](ast::UnresolvedIdent *nm) { Exception::raise("Unexpected unresolved name in arg!"); },
         [&](ast::RestArg *rest) { default_ = getDefaultValue(move(rest->expr)); },
         [&](ast::KeywordArg *kw) { default_ = getDefaultValue(move(kw->expr)); },
-        [&](ast::OptionalArg *opt) { default_ = getDefaultValue(move(opt->expr)); },
+        [&](ast::OptionalArg *opt) { default_ = move(opt->default_); },
         [&](ast::BlockArg *blk) { default_ = getDefaultValue(move(blk->expr)); },
         [&](ast::ShadowArg *shadow) { default_ = getDefaultValue(move(shadow->expr)); },
         [&](ast::Local *local) {
             // No default.
         });
+    ENFORCE(default_ != nullptr);
     return default_;
 }
 
@@ -102,7 +107,7 @@ std::vector<u4> ArgParsing::hashArgs(core::Context ctx, const std::vector<Parsed
     return result;
 }
 
-unique_ptr<ast::Expression> ArgParsing::getDefault(const ParsedArg &parsedArg, unique_ptr<ast::Reference> arg) {
+unique_ptr<ast::Expression> ArgParsing::getDefault(const ParsedArg &parsedArg, unique_ptr<ast::Expression> arg) {
     if (!parsedArg.flags.isDefault) {
         return nullptr;
     }

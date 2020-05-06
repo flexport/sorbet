@@ -304,7 +304,7 @@ TEST_P(ExpectationTest, PerPhaseTest) { // NOLINT
             core::UnfreezeSymbolTable symbolTableAccess(*gs); // enters symbols
             vector<ast::ParsedFile> vTmp;
             vTmp.emplace_back(move(localNamed));
-            vTmp = namer::Namer::run(*gs, move(vTmp));
+            vTmp = namer::Namer::run(*gs, move(vTmp), *workers);
             namedTree = testSerialize(*gs, move(vTmp[0]));
         }
 
@@ -515,7 +515,7 @@ TEST_P(ExpectationTest, PerPhaseTest) { // NOLINT
             core::UnfreezeSymbolTable symbolTableAccess(*gs);
             vector<ast::ParsedFile> vTmp;
             vTmp.emplace_back(move(file));
-            vTmp = namer::Namer::run(*gs, move(vTmp));
+            vTmp = namer::Namer::run(*gs, move(vTmp), *workers);
             file = testSerialize(*gs, move(vTmp[0]));
         }
 

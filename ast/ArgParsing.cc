@@ -8,32 +8,32 @@ using namespace std;
 namespace sorbet::ast {
 
 namespace {
-ParsedArg parseArg(const unique_ptr<ast::Reference> &arg) {
+ParsedArg parseArg(const ast::Reference &arg) {
     ParsedArg parsedArg;
 
     typecase(
-        arg.get(), [&](ast::UnresolvedIdent *nm) { Exception::raise("Unexpected unresolved name in arg!"); },
-        [&](ast::RestArg *rest) {
-            parsedArg = parseArg(rest->expr);
+        &arg,
+        [&](const ast::RestArg *rest) {
+            parsedArg = parseArg(*rest->expr);
             parsedArg.flags.isRepeated = true;
         },
-        [&](ast::KeywordArg *kw) {
-            parsedArg = parseArg(kw->expr);
+        [&](const ast::KeywordArg *kw) {
+            parsedArg = parseArg(*kw->expr);
             parsedArg.flags.isKeyword = true;
         },
-        [&](ast::OptionalArg *opt) {
-            parsedArg = parseArg(opt->expr);
+        [&](const ast::OptionalArg *opt) {
+            parsedArg = parseArg(*opt->expr);
             parsedArg.flags.isDefault = true;
         },
-        [&](ast::BlockArg *blk) {
-            parsedArg = parseArg(blk->expr);
+        [&](const ast::BlockArg *blk) {
+            parsedArg = parseArg(*blk->expr);
             parsedArg.flags.isBlock = true;
         },
-        [&](ast::ShadowArg *shadow) {
-            parsedArg = parseArg(shadow->expr);
+        [&](const ast::ShadowArg *shadow) {
+            parsedArg = parseArg(*shadow->expr);
             parsedArg.flags.isShadow = true;
         },
-        [&](ast::Local *local) {
+        [&](const ast::Local *local) {
             parsedArg.local = local->localVariable;
             parsedArg.loc = local->loc;
         });
@@ -48,8 +48,7 @@ unique_ptr<ast::Expression> getDefaultValue(unique_ptr<ast::Expression> arg) {
     }
     unique_ptr<ast::Expression> default_;
     typecase(
-        refExp, [&](ast::UnresolvedIdent *nm) { Exception::raise("Unexpected unresolved name in arg!"); },
-        [&](ast::RestArg *rest) { default_ = getDefaultValue(move(rest->expr)); },
+        refExp, [&](ast::RestArg *rest) { default_ = getDefaultValue(move(rest->expr)); },
         [&](ast::KeywordArg *kw) { default_ = getDefaultValue(move(kw->expr)); },
         [&](ast::OptionalArg *opt) { default_ = move(opt->default_); },
         [&](ast::BlockArg *blk) { default_ = getDefaultValue(move(blk->expr)); },
@@ -70,10 +69,7 @@ vector<ParsedArg> ArgParsing::parseArgs(const ast::MethodDef::ARGS_store &args) 
         if (!refExp) {
             Exception::raise("Must be a reference!");
         }
-        unique_ptr<ast::Reference> refExpImpl(refExp);
-        parsedArgs.emplace_back(parseArg(refExpImpl));
-        // Don't free the pointer; it's still owned by `args`.
-        refExpImpl.release();
+        parsedArgs.emplace_back(parseArg(*refExp));
     }
 
     return parsedArgs;
